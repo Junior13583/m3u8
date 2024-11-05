@@ -6,8 +6,6 @@
     <title>M3U8 在线播放器</title>
     <script src="js/hls.min.js"></script>
     <link rel="preload" as="script" href="js/hls.min.js">
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
-    <script src="https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js"></script>
     <style>
         * {
             margin: 0;
@@ -167,7 +165,7 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            max-height: 280px;
+            height: 220px;
             overflow-y: auto;
             padding-right: 8px;
         }
@@ -255,7 +253,7 @@
         .delete-history::before {
             content: '×';
             position: relative;
-            top: -1px;
+            top: -2px;
             line-height: 1;
         }
 
@@ -294,6 +292,117 @@
             padding: 20px;
             font-style: italic;
         }
+
+        .video-controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 12px;
+            z-index: 1000;
+        }
+
+        .quality-selector, .speed-selector {
+            position: relative;
+        }
+
+        .control-btn {
+            background: rgba(0, 0, 0, 0.75);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-btn::after {
+            content: '▼';
+            font-size: 10px;
+            margin-left: 4px;
+            transition: transform 0.2s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(0, 0, 0, 0.85);
+            transform: translateY(-1px);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+        }
+
+        .quality-menu, .speed-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: rgba(0, 0, 0, 0.85);
+            border-radius: 8px;
+            padding: 6px 0;
+            min-width: 120px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transform-origin: top right;
+            animation: menuFadeIn 0.2s ease;
+        }
+
+        @keyframes menuFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .quality-item, .speed-item {
+            color: white;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .quality-item:hover, .speed-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            padding-left: 20px;
+        }
+
+        .quality-item.active, .speed-item.active {
+            background: rgba(33, 150, 243, 0.3);
+            color: #2196f3;
+        }
+
+        .quality-item.active::after, .speed-item.active::after {
+            content: '✓';
+            margin-left: 8px;
+            color: #2196f3;
+        }
+
+        .quality-menu::before, .speed-menu::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            right: 20px;
+            width: 8px;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.85);
+            transform: rotate(45deg);
+        }
     </style>
 </head>
 <body>
@@ -312,6 +421,23 @@
         <div class="video-container">
             <video id="videoPlayer" controls playsinline webkit-playsinline></video>
             <div id="loading" class="loading">加载中...</div>
+            <div class="video-controls">
+                <div class="quality-selector">
+                    <button class="control-btn" onclick="toggleQualityMenu()">画质</button>
+                    <div class="quality-menu" id="qualityMenu"></div>
+                </div>
+                <div class="speed-selector">
+                    <button class="control-btn" onclick="toggleSpeedMenu()">倍速</button>
+                    <div class="speed-menu" id="speedMenu">
+                        <div class="speed-item" onclick="setPlaybackSpeed(2)">2.0x</div>
+                        <div class="speed-item" onclick="setPlaybackSpeed(1.5)">1.5x</div>
+                        <div class="speed-item" onclick="setPlaybackSpeed(1.25)">1.25x</div>
+                        <div class="speed-item" onclick="setPlaybackSpeed(1)" data-default>1.0x</div>
+                        <div class="speed-item" onclick="setPlaybackSpeed(0.75)">0.75x</div>
+                        <div class="speed-item" onclick="setPlaybackSpeed(0.5)">0.5x</div>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="history-container">
             <div class="history-title">
@@ -326,40 +452,25 @@
 
     <script>
         const hlsConfig = {
-            autoStartLoad: true,
-            startLevel: -1,
-            maxBufferLength: 30,
-            maxMaxBufferLength: 60,
-            maxBufferSize: 200 * 1000 * 1000,
-            maxBufferHole: 0.5,
-            highBufferWatchdogPeriod: 2,
-            nudgeOffset: 0.1,
-            nudgeMaxRetry: 5,
-            maxFragLookUpTolerance: 0.25,
-            liveSyncDurationCount: 3,
-            liveMaxLatencyDurationCount: 10,
-            enableWorker: true,
-            enableSoftwareAES: true,
-            manifestLoadingTimeOut: 10000,
-            manifestLoadingMaxRetry: 4,
-            manifestLoadingRetryDelay: 500,
-            manifestLoadingMaxRetryTimeout: 64000,
-            startFragPrefetch: true,
-            testBandwidth: true,
+            autoStartLoad: true,          
+            startLevel: -1,              
+            maxBufferLength: 30,         
+            maxBufferSize: 50000000,     
+            enableWorker: true,          
+            debug: false,                
             progressive: true,
-            lowLatencyMode: false,
-            fLoader: undefined,
-            pLoader: undefined,
-            abrEwmaFastLive: 3.0,
-            abrEwmaSlowLive: 9.0,
-            abrEwmaFastVoD: 3.0,
-            abrEwmaSlowVoD: 9.0,
+            // 优化跳转相关配置
+            maxBufferHole: 0.1,          // 减小缓冲区空洞的最大时长
+            maxSeekHole: 2,              // 最大跳转空洞
+            seekHoleNudgeDuration: 0.1,  // 跳转空洞微调时长
+            maxFragLookUpTolerance: 0.2, // 片段查找容差
+            lowLatencyMode: false,       // 关闭低延迟模式以提高稳定性
             abrEwmaDefaultEstimate: 500000,
-            abrBandWidthFactor: 0.95,
-            abrBandWidthUpFactor: 0.7,
             abrMaxWithRealBitrate: true,
-            maxStarvationDelay: 4,
-            maxLoadingDelay: 4,
+            manifestLoadingMaxRetry: 2,
+            manifestLoadingRetryDelay: 1000,
+            levelLoadingTimeOut: 10000,
+            fragLoadingTimeOut: 20000,
         };
 
         let currentHls = null;
@@ -401,6 +512,16 @@
                             video.play();
                         });
                     }
+
+                    // 生成清晰度菜单
+                    const qualityMenu = document.getElementById('qualityMenu');
+                    qualityMenu.innerHTML = data.levels.map((level, index) => {
+                        const resolution = level.height + 'p';
+                        return `<div class="quality-item" data-level="${index}" onclick="switchQuality(${index})">${resolution}</div>`;
+                    }).join('');
+                    
+                    // 设置默认清晰度（使用之前声明的bestLevel变量）
+                    document.querySelector(`[data-level="${bestLevel}"]`).classList.add('active');
                 });
 
                 currentHls.on(Hls.Events.LEVEL_LOADED, function() {
@@ -438,6 +559,40 @@
                 currentHls.loadSource(url);
                 currentHls.attachMedia(video);
 
+                // 添加跳转相关的事件处理
+                video.addEventListener('seeking', function() {
+                    loading.classList.add('active');
+                    loading.textContent = '正在缓冲...';
+                });
+
+                video.addEventListener('seeked', function() {
+                    loading.classList.remove('active');
+                });
+
+                // 添加缓冲监听
+                video.addEventListener('waiting', function() {
+                    loading.classList.add('active');
+                    loading.textContent = '正在缓冲...';
+                });
+
+                video.addEventListener('playing', function() {
+                    loading.classList.remove('active');
+                });
+
+                // 优化缓冲策略
+                currentHls.on(Hls.Events.FRAG_CHANGED, function() {
+                    if (video.buffered.length) {
+                        const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                        const duration = video.duration;
+                        const bufferedPercent = (bufferedEnd / duration) * 100;
+                        
+                        // 如果缓冲足够，移除加载提示
+                        if (bufferedPercent > 5) {
+                            loading.classList.remove('active');
+                        }
+                    }
+                });
+
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = url;
                 video.play();
@@ -471,34 +626,66 @@
 
                 const response = await fetch(url);
                 const m3u8Content = await response.text();
+                console.log('M3U8内容:', m3u8Content);
 
                 const lines = m3u8Content.split('\n');
                 const tsUrls = [];
+                let baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
                 
+                // 处理主播放列表
                 if (m3u8Content.includes('#EXT-X-STREAM-INF')) {
+                    console.log('检测到主播放列表');
+                    
+                    // 存储所有可用的清晰度
+                    const qualities = [];
+                    
                     for (let i = 0; i < lines.length; i++) {
                         if (lines[i].includes('#EXT-X-STREAM-INF')) {
+                            const streamInfo = lines[i];
+                            const resolution = streamInfo.match(/RESOLUTION=(\d+x\d+)/);
+                            const bandwidth = streamInfo.match(/BANDWIDTH=(\d+)/);
                             const subPath = lines[i + 1].trim();
-                            const subUrl = subPath.startsWith('http') 
-                                ? subPath 
-                                : new URL(subPath, url).href;
-                            const subResponse = await fetch(subUrl);
-                            const subM3u8Content = await subResponse.text();
-                            lines.length = 0;
-                            lines.push(...subM3u8Content.split('\n'));
-                            break;
+                            
+                            qualities.push({
+                                resolution: resolution ? resolution[1] : '',
+                                bandwidth: bandwidth ? parseInt(bandwidth[1]) : 0,
+                                path: subPath
+                            });
                         }
                     }
+                    
+                    // 按带宽排序，选择最高清的版本
+                    qualities.sort((a, b) => b.bandwidth - a.bandwidth);
+                    console.log('可用清晰度:', qualities);
+                    
+                    // 使用最高清晰度的链接
+                    const highestQuality = qualities[0];
+                    const subUrl = highestQuality.path.startsWith('http') 
+                        ? highestQuality.path 
+                        : new URL(highestQuality.path, baseUrl).href;
+                    
+                    console.log('选择最高清晰度:', highestQuality);
+                    console.log('子M3U8链接:', subUrl);
+                    
+                    const subResponse = await fetch(subUrl);
+                    const subM3u8Content = await subResponse.text();
+                    lines.length = 0;
+                    lines.push(...subM3u8Content.split('\n'));
+                    baseUrl = subUrl.substring(0, subUrl.lastIndexOf('/') + 1);
                 }
 
-                const baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
+                // 解析ts片段
                 for (let i = 0; i < lines.length; i++) {
                     const line = lines[i].trim();
-                    if (line && !line.startsWith('#') && (line.endsWith('.ts') || line.includes('.ts?'))) {
-                        const tsUrl = line.startsWith('http') 
-                            ? line 
-                            : new URL(line, baseUrl).href;
+                    if (line && !line.startsWith('#')) {
+                        let tsUrl;
+                        if (line.startsWith('http')) {
+                            tsUrl = line;
+                        } else {
+                            tsUrl = new URL(line, baseUrl).href;
+                        }
                         tsUrls.push(tsUrl);
+                        console.log(`解析到ts链接 ${tsUrls.length}:`, tsUrl);
                     }
                 }
 
@@ -517,17 +704,23 @@
                         progressText.textContent = `正在下载片段 ${i + 1}/${totalSegments}`;
                         progressBarFill.style.width = `${((i + 1) / totalSegments) * 100}%`;
 
+                        console.log(`开始下载片段 ${i + 1}/${totalSegments}: ${tsUrls[i]}`);
                         const tsResponse = await fetch(tsUrls[i]);
+                        
                         if (!tsResponse.ok) {
+                            console.error(`片段 ${i + 1} 下载失败: HTTP ${tsResponse.status}`);
                             throw new Error(`HTTP error! status: ${tsResponse.status}`);
                         }
+                        
                         const tsBuffer = await tsResponse.arrayBuffer();
+                        console.log(`片段 ${i + 1} 下载成功，大小: ${(tsBuffer.byteLength / 1024).toFixed(2)}KB`);
                         chunks.push(new Uint8Array(tsBuffer));
                         
                         await new Promise(resolve => setTimeout(resolve, 50));
                         
                     } catch (error) {
-                        console.error(`下载片段 ${i + 1} 失败:`, error);
+                        console.error(`下载片段 ${i + 1}/${totalSegments} 失败:`, error);
+                        console.log(`1秒后重试下载片段 ${i + 1}`);
                         i--;
                         await new Promise(resolve => setTimeout(resolve, 1000));
                         continue;
@@ -538,9 +731,13 @@
                     throw new Error('没有成功下载任何视频片段');
                 }
 
+                console.log(`所有片段下载完成，共 ${chunks.length} 个片段`);
                 progressText.textContent = '正在合并视频片段...';
 
                 const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+                console.log(`总文件大小: ${(totalLength / 1024 / 1024).toFixed(2)}MB`);
+
+                // 直接合并并下载ts文件
                 const mergedVideo = new Uint8Array(totalLength);
 
                 let offset = 0;
@@ -549,6 +746,7 @@
                     offset += chunk.length;
                 }
 
+                // 创建下载
                 const blob = new Blob([mergedVideo], { type: 'video/MP2T' });
                 const downloadUrl = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -641,6 +839,49 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             updateHistoryDisplay();
+        });
+
+        // 清晰度控制
+        function toggleQualityMenu() {
+            const menu = document.getElementById('qualityMenu');
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function switchQuality(level) {
+            if (currentHls) {
+                currentHls.currentLevel = level;
+                // 更新菜单项状态
+                document.querySelectorAll('.quality-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                document.querySelector(`[data-level="${level}"]`).classList.add('active');
+                toggleQualityMenu();
+            }
+        }
+
+        // 倍速控制
+        function toggleSpeedMenu() {
+            const menu = document.getElementById('speedMenu');
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function setPlaybackSpeed(speed) {
+            const video = document.getElementById('videoPlayer');
+            video.playbackRate = speed;
+            // 更新菜单项状态
+            document.querySelectorAll('.speed-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`.speed-item[onclick="setPlaybackSpeed(${speed})"]`).classList.add('active');
+            toggleSpeedMenu();
+        }
+
+        // 点击其他区域关闭菜单
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.quality-selector') && !e.target.closest('.speed-selector')) {
+                document.getElementById('qualityMenu').style.display = 'none';
+                document.getElementById('speedMenu').style.display = 'none';
+            }
         });
     </script>
 </body>
