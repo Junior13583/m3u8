@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M3U8 在线播放器</title>
+    <script src="js/hls.min.js"></script>
+    <link rel="preload" as="script" href="js/hls.min.js">
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
+    <script src="https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: #2196f3;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 500;
+            color: white;
+            background: #2196f3;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: #1976d2;
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 10px;
+            aspect-ratio: 16 / 9;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 8px;
+            object-fit: contain;
+        }
+
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .download-btn {
+            background: #4caf50;
+        }
+
+        .download-btn:hover {
+            background: #388e3c;
+        }
+
+        .progress-bar {
+            display: none;
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            margin-top: 10px;
+        }
+
+        .progress-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: #4caf50;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        .history-container {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .history-title {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 280px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        .history-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .history-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .history-list::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+
+        .history-list::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 40px 8px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .history-item:hover {
+            background: #e9ecef;
+        }
+
+        .history-content {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-right: 8px;
+        }
+
+        .history-url {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-right: 10px;
+            color: #495057;
+        }
+
+        .history-time {
+            font-size: 12px;
+            color: #868e96;
+            min-width: 100px;
+            text-align: right;
+        }
+
+        .delete-history {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(220, 53, 69, 0.8);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            user-select: none;
+        }
+
+        .delete-history::before {
+            content: '×';
+            position: relative;
+            top: -1px;
+            line-height: 1;
+        }
+
+        .history-item:hover .delete-history {
+            opacity: 1;
+            transform: translateY(-50%) scale(1);
+        }
+
+        .delete-history:hover {
+            background: rgba(220, 53, 69, 1);
+            transform: translateY(-50%) scale(1.15);
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .delete-history:active {
+            transform: translateY(-50%) scale(0.95);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .clear-history {
+            font-size: 14px;
+            color: #dc3545;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .clear-history:hover {
+            background: #ffebee;
+        }
+
+        .no-history {
+            color: #868e96;
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="input-group">
+            <input type="text" id="m3u8Input" placeholder="请输入m3u8视频链接">
+            <div class="button-group">
+                <button onclick="playVideo()">播放</button>
+                <button onclick="downloadVideo()" class="download-btn">下载</button>
+            </div>
+        </div>
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-bar-fill" id="progressBarFill"></div>
+        </div>
+        <div class="progress-text" id="progressText"></div>
+        <div class="video-container">
+            <video id="videoPlayer" controls playsinline webkit-playsinline></video>
+            <div id="loading" class="loading">加载中...</div>
+        </div>
+        <div class="history-container">
+            <div class="history-title">
+                <span>播放历史</span>
+                <span class="clear-history" onclick="clearHistory()">清空历史</span>
+            </div>
+            <div class="history-list" id="historyList">
+                <!-- 历史记录将通过 JavaScript 动态添加 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const hlsConfig = {
+            autoStartLoad: true,
+            startLevel: -1,
+            maxBufferLength: 30,
+            maxMaxBufferLength: 60,
+            maxBufferSize: 200 * 1000 * 1000,
+            maxBufferHole: 0.5,
+            highBufferWatchdogPeriod: 2,
+            nudgeOffset: 0.1,
+            nudgeMaxRetry: 5,
+            maxFragLookUpTolerance: 0.25,
+            liveSyncDurationCount: 3,
+            liveMaxLatencyDurationCount: 10,
+            enableWorker: true,
+            enableSoftwareAES: true,
+            manifestLoadingTimeOut: 10000,
+            manifestLoadingMaxRetry: 4,
+            manifestLoadingRetryDelay: 500,
+            manifestLoadingMaxRetryTimeout: 64000,
+            startFragPrefetch: true,
+            testBandwidth: true,
+            progressive: true,
+            lowLatencyMode: false,
+            fLoader: undefined,
+            pLoader: undefined,
+            abrEwmaFastLive: 3.0,
+            abrEwmaSlowLive: 9.0,
+            abrEwmaFastVoD: 3.0,
+            abrEwmaSlowVoD: 9.0,
+            abrEwmaDefaultEstimate: 500000,
+            abrBandWidthFactor: 0.95,
+            abrBandWidthUpFactor: 0.7,
+            abrMaxWithRealBitrate: true,
+            maxStarvationDelay: 4,
+            maxLoadingDelay: 4,
+        };
+
+        let currentHls = null;
+        const loading = document.getElementById('loading');
+        
+        function playVideo() {
+            const video = document.getElementById('videoPlayer');
+            const url = document.getElementById('m3u8Input').value;
+            
+            if (!url) {
+                alert('请输入视频链接');
+                return;
+            }
+
+            addToHistory(url);
+
+            if (currentHls) {
+                currentHls.destroy();
+            }
+
+            loading.classList.add('active');
+
+            if (Hls.isSupported()) {
+                currentHls = new Hls(hlsConfig);
+                
+                currentHls.on(Hls.Events.MANIFEST_LOADING, function() {
+                    loading.textContent = '正在加载视频信息...';
+                });
+
+                currentHls.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
+                    loading.textContent = '正在缓冲...';
+                    const bestLevel = data.levels.length - 1;
+                    currentHls.currentLevel = bestLevel;
+                    
+                    const playPromise = video.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(() => {
+                            video.muted = true;
+                            video.play();
+                        });
+                    }
+                });
+
+                currentHls.on(Hls.Events.LEVEL_LOADED, function() {
+                    loading.classList.remove('active');
+                });
+
+                currentHls.on(Hls.Events.FRAG_LOADED, function() {
+                    if (loading.classList.contains('active')) {
+                        loading.classList.remove('active');
+                    }
+                });
+
+                currentHls.on(Hls.Events.ERROR, function(event, data) {
+                    if (data.fatal) {
+                        switch(data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                loading.textContent = '网络错误，正在重试...';
+                                currentHls.startLoad();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                loading.textContent = '媒体错误，正在恢复...';
+                                currentHls.recoverMediaError();
+                                break;
+                            default:
+                                currentHls.destroy();
+                                loading.textContent = '视频加载失败';
+                                setTimeout(() => loading.classList.remove('active'), 2000);
+                                break;
+                        }
+                    }
+                });
+
+                video.preload = 'auto';
+                
+                currentHls.loadSource(url);
+                currentHls.attachMedia(video);
+
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = url;
+                video.play();
+                loading.classList.remove('active');
+            } else {
+                alert('您的浏览器不支持播放M3U8视频');
+                loading.classList.remove('active');
+            }
+        }
+
+        document.getElementById('m3u8Input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                playVideo();
+            }
+        });
+
+        async function downloadVideo() {
+            const url = document.getElementById('m3u8Input').value;
+            if (!url) {
+                alert('请输入视频链接');
+                return;
+            }
+
+            const progressBar = document.getElementById('progressBar');
+            const progressBarFill = document.getElementById('progressBarFill');
+            const progressText = document.getElementById('progressText');
+
+            try {
+                progressBar.style.display = 'block';
+                progressText.textContent = '正在解析视频信息...';
+
+                const response = await fetch(url);
+                const m3u8Content = await response.text();
+
+                const lines = m3u8Content.split('\n');
+                const tsUrls = [];
+                
+                if (m3u8Content.includes('#EXT-X-STREAM-INF')) {
+                    for (let i = 0; i < lines.length; i++) {
+                        if (lines[i].includes('#EXT-X-STREAM-INF')) {
+                            const subPath = lines[i + 1].trim();
+                            const subUrl = subPath.startsWith('http') 
+                                ? subPath 
+                                : new URL(subPath, url).href;
+                            const subResponse = await fetch(subUrl);
+                            const subM3u8Content = await subResponse.text();
+                            lines.length = 0;
+                            lines.push(...subM3u8Content.split('\n'));
+                            break;
+                        }
+                    }
+                }
+
+                const baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (line && !line.startsWith('#') && (line.endsWith('.ts') || line.includes('.ts?'))) {
+                        const tsUrl = line.startsWith('http') 
+                            ? line 
+                            : new URL(line, baseUrl).href;
+                        tsUrls.push(tsUrl);
+                    }
+                }
+
+                if (tsUrls.length === 0) {
+                    throw new Error('没有找到可下载的视频片段');
+                }
+
+                console.log(`找到 ${tsUrls.length} 个视频片段`);
+                progressText.textContent = '开始下载视频片段...';
+                
+                const chunks = [];
+                const totalSegments = tsUrls.length;
+
+                for (let i = 0; i < totalSegments; i++) {
+                    try {
+                        progressText.textContent = `正在下载片段 ${i + 1}/${totalSegments}`;
+                        progressBarFill.style.width = `${((i + 1) / totalSegments) * 100}%`;
+
+                        const tsResponse = await fetch(tsUrls[i]);
+                        if (!tsResponse.ok) {
+                            throw new Error(`HTTP error! status: ${tsResponse.status}`);
+                        }
+                        const tsBuffer = await tsResponse.arrayBuffer();
+                        chunks.push(new Uint8Array(tsBuffer));
+                        
+                        await new Promise(resolve => setTimeout(resolve, 50));
+                        
+                    } catch (error) {
+                        console.error(`下载片段 ${i + 1} 失败:`, error);
+                        i--;
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        continue;
+                    }
+                }
+
+                if (chunks.length === 0) {
+                    throw new Error('没有成功下载任何视频片段');
+                }
+
+                progressText.textContent = '正在合并视频片段...';
+
+                const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+                const mergedVideo = new Uint8Array(totalLength);
+
+                let offset = 0;
+                for (const chunk of chunks) {
+                    mergedVideo.set(chunk, offset);
+                    offset += chunk.length;
+                }
+
+                const blob = new Blob([mergedVideo], { type: 'video/MP2T' });
+                const downloadUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = 'video.ts';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(downloadUrl);
+
+                progressText.textContent = '下载完成！';
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                    progressText.textContent = '';
+                }, 3000);
+
+            } catch (error) {
+                console.error('下载错误:', error);
+                progressText.textContent = `下载失败: ${error.message}`;
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                    progressText.textContent = '';
+                }, 3000);
+            }
+        }
+
+        function addToHistory(url) {
+            const history = JSON.parse(localStorage.getItem('m3u8History') || '[]');
+            
+            const filteredHistory = history.filter(item => item.url !== url);
+            
+            filteredHistory.unshift({
+                url: url,
+                time: new Date().toISOString()
+            });
+
+            if (filteredHistory.length > 20) {
+                filteredHistory.pop();
+            }
+
+            localStorage.setItem('m3u8History', JSON.stringify(filteredHistory));
+            updateHistoryDisplay();
+        }
+
+        function updateHistoryDisplay() {
+            const historyList = document.getElementById('historyList');
+            const history = JSON.parse(localStorage.getItem('m3u8History') || '[]');
+
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="no-history">暂无播放历史</div>';
+                return;
+            }
+
+            historyList.innerHTML = history.map((item, index) => {
+                const date = new Date(item.time);
+                const formattedTime = `${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+                
+                return `
+                    <div class="history-item">
+                        <div class="history-content" onclick="playHistoryItem('${item.url}')">
+                            <div class="history-url">${item.url}</div>
+                            <div class="history-time">${formattedTime}</div>
+                        </div>
+                        <div class="delete-history" onclick="deleteHistoryItem(${index})" title="删除"></div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function playHistoryItem(url) {
+            document.getElementById('m3u8Input').value = url;
+            playVideo();
+        }
+
+        function clearHistory() {
+            if (confirm('确定要清空播放历史吗？')) {
+                localStorage.removeItem('m3u8History');
+                updateHistoryDisplay();
+            }
+        }
+
+        function deleteHistoryItem(index) {
+            event.stopPropagation();
+            
+            const history = JSON.parse(localStorage.getItem('m3u8History') || '[]');
+            history.splice(index, 1);
+            localStorage.setItem('m3u8History', JSON.stringify(history));
+            updateHistoryDisplay();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateHistoryDisplay();
+        });
+    </script>
+</body>
+</html> 
