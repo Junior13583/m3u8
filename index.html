@@ -46,6 +46,7 @@
             border-radius: 8px;
             transition: all 0.3s ease;
             outline: none;
+            min-width: 0;
         }
 
         input[type="text"]:focus {
@@ -210,6 +211,7 @@
             justify-content: space-between;
             align-items: center;
             margin-right: 8px;
+            min-width: 0;
         }
 
         .history-url {
@@ -219,6 +221,29 @@
             white-space: nowrap;
             margin-right: 10px;
             color: #495057;
+            max-width: 674px;
+            min-width: 0;
+        }
+
+        .history-url:hover::after {
+            display: flex;
+            content: attr(data-full-url);
+            position: absolute;
+            left: 0;
+            top: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            z-index: 1000;
+            white-space: normal;
+            word-wrap: break-word;
+            word-break: break-all;
+            max-width: calc(100% - 20px);
+            min-width: 0;
+            font-size: 14px;
+            line-height: 1.4;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
 
         .history-time {
@@ -226,6 +251,7 @@
             color: #868e96;
             min-width: 100px;
             text-align: right;
+            white-space: nowrap;
         }
 
         .delete-history {
@@ -403,6 +429,14 @@
             background: rgba(0, 0, 0, 0.85);
             transform: rotate(45deg);
         }
+
+        @media (max-width: 512px) {
+            input[type="text"],
+            button {
+                padding: 8px 8px;
+                font-size: 14px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -423,11 +457,11 @@
             <div id="loading" class="loading">加载中...</div>
             <div class="video-controls">
                 <div class="quality-selector">
-                    <button class="control-btn" onclick="toggleQualityMenu()">画质</button>
+                    <button class="control-btn" onclick="toggleQualityMenu()">自动</button>
                     <div class="quality-menu" id="qualityMenu"></div>
                 </div>
                 <div class="speed-selector">
-                    <button class="control-btn" onclick="toggleSpeedMenu()">倍速</button>
+                    <button class="control-btn" onclick="toggleSpeedMenu()">1x</button>
                     <div class="speed-menu" id="speedMenu">
                         <div class="speed-item" onclick="setPlaybackSpeed(2)">2.0x</div>
                         <div class="speed-item" onclick="setPlaybackSpeed(1.5)">1.5x</div>
@@ -807,7 +841,7 @@
                 return `
                     <div class="history-item">
                         <div class="history-content" onclick="playHistoryItem('${item.url}')">
-                            <div class="history-url">${item.url}</div>
+                            <div class="history-url" data-full-url="${item.url}">${item.url}</div>
                             <div class="history-time">${formattedTime}</div>
                         </div>
                         <div class="delete-history" onclick="deleteHistoryItem(${index})" title="删除"></div>
