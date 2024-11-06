@@ -750,6 +750,175 @@
             }
 
         }
+
+        /* 在媒体查询部分添加以下样式 */
+        @media screen and (max-width: 768px) {
+            .quality-selector .control-btn,
+            .speed-selector .control-btn {
+                padding: 4px 8px;
+                font-size: 12px;
+            }
+
+            .quality-menu, .speed-menu {
+                min-width: 75px;
+                padding: 0px 0;
+            }
+
+            .quality-item, .speed-item {
+                padding: 3px 10px;
+                font-size: 12px;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .quality-selector .control-btn,
+            .speed-selector .control-btn {
+                padding: 3px 6px;
+                font-size: 12px;
+            }
+
+            .quality-menu, .speed-menu {
+                min-width: 70px;
+                padding: 0px 0;
+            }
+
+            .quality-item, .speed-item {
+                padding: 3px 10px;
+                font-size: 11px;
+            }
+
+            /* 调整菜单位置，避免超出屏幕 */
+            .quality-menu, .speed-menu {
+                bottom: 35px;
+            }
+
+            /* 调整菜单小三角的位置 */
+            .quality-menu::after, .speed-menu::after {
+                bottom: -5px;
+                border-width: 5px;
+            }
+        }
+
+        .donate-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .donate-btn {
+            background: #ff4081;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .donate-btn:hover {
+            background: #f50057;
+            transform: translateY(-2px);
+        }
+
+        .donate-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .donate-modal-content {
+            position: relative;
+            background: white;
+            width: 90%;
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            animation: slideIn 0.3s ease;
+        }
+
+        .donate-close {
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            font-size: 24px;
+            color: #666;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .donate-close:hover {
+            color: #333;
+        }
+
+        .donate-modal h3 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .qrcode-container {
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+        }
+
+        .qrcode-item {
+            text-align: center;
+        }
+
+        .qrcode-item img {
+            width: 150px;
+            height: 150px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+
+        .qrcode-item p {
+            margin-top: 10px;
+            color: #666;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* 移动端适配 */
+        @media screen and (max-width: 480px) {
+            .donate-modal-content {
+                width: 95%;
+                margin: 50px auto;
+            }
+
+            .qrcode-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .qrcode-item img {
+                width: 120px;
+                height: 120px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -854,6 +1023,25 @@
         </div>
         <div class="history-list" id="historyList">
             <!-- 历史记录将通过 JavaScript 动态添加 -->
+        </div>
+    </div>
+    <div class="donate-container">
+        <button class="donate-btn">打赏</button>
+        <div class="donate-modal">
+            <div class="donate-modal-content">
+                <span class="donate-close">&times;</span>
+                <h3>感谢支持</h3>
+                <div class="qrcode-container">
+                    <div class="qrcode-item">
+                        <img src="img/wechat.jpg" alt="微信支付">
+                        <p>微信支付</p>
+                    </div>
+                    <div class="qrcode-item">
+                        <img src="img/alipay.jpg" alt="支付宝">
+                        <p>支付宝</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -1782,7 +1970,7 @@
             }
         });
 
-        // 添加鼠标指针样式
+        // 添加鼠标指针样���
         videoContainer.addEventListener('mousemove', function(e) {
             if (!e.target.closest('.custom-controls') && 
                 !e.target.closest('.quality-menu') && 
@@ -1828,6 +2016,33 @@
         video.addEventListener('pause', function() {
             playIcon.style.display = 'block';
             pauseIcon.style.display = 'none';
+        });
+    });
+
+    // 打赏相关的JavaScript
+    document.addEventListener('DOMContentLoaded', function() {
+        const donateBtn = document.querySelector('.donate-btn');
+        const donateModal = document.querySelector('.donate-modal');
+        const donateClose = document.querySelector('.donate-close');
+
+        // 打开弹窗
+        donateBtn.addEventListener('click', function() {
+            donateModal.style.display = 'block';
+            document.body.style.overflow = 'hidden'; // 防止背景滚动
+        });
+
+        // 关闭弹窗
+        donateClose.addEventListener('click', function() {
+            donateModal.style.display = 'none';
+            document.body.style.overflow = '';
+        });
+
+        // 点击背景关闭弹窗
+        donateModal.addEventListener('click', function(e) {
+            if (e.target === donateModal) {
+                donateModal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
         });
     });
 </script>
