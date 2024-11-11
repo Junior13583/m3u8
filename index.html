@@ -1062,6 +1062,8 @@
     const loading = document.getElementById('loading');
     const qualityBtn = document.querySelector('.quality-selector .control-btn');
     const speedBtn = document.querySelector('.speed-selector .control-btn');
+    // 定时器, 用于隐藏移动端底部控制栏
+    let mobileControlsTimeout;
 
     function playVideo() {
         const video = document.getElementById('videoPlayer');
@@ -1573,20 +1575,15 @@
         pauseIcon.style.display = 'none';
     });
 
-    // 自动隐藏控件
-    let controlsTimeout;
+    // 鼠标移入显示控件
     container.addEventListener('mousemove', () => {
         controls.style.opacity = '1';
-        clearTimeout(controlsTimeout);
-        controlsTimeout = setTimeout(() => {
-            if (!video.paused) {
-                controls.style.opacity = '0';
-            }
-        }, 3000);
     });
 
+    // 鼠标移出隐藏控件
     container.addEventListener('mouseleave', () => {
         if (!video.paused) {
+            clearTimeout(mobileControlsTimeout)
             controls.style.opacity = '0';
         }
     });
@@ -1833,11 +1830,17 @@
 
             // 检查是否为移动端
             if (/Mobi|Android/i.test(navigator.userAgent)) {
-                return; // 如果是移动端，直接返回，不执行后续逻辑
+                controls.style.opacity = '1';
+                clearTimeout(mobileControlsTimeout);
+                mobileControlsTimeout = setTimeout(() => {
+                    if (!video.paused) {
+                        controls.style.opacity = '0';
+                    }
+                }, 3000);
             }
 
             // 确保点击不是在控制栏上
-            if (!e.target.closest('.custom-controls') && 
+            else if (!e.target.closest('.custom-controls') &&
                 !e.target.closest('.quality-menu') && 
                 !e.target.closest('.speed-menu')) {
                 if (video.paused) {
