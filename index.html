@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>M3U8 在线播放器</title>
+     <meta name="description" content="M3U8 在线播放器, 支持视频直播等各种媒体源在线播放, 提供流畅的观看体验. 同时提供解析M3U8链接, 自动选择最高清下载.">
+
+    <!-- 关键词 -->
+    <meta name="keywords" content="M3U8, 在线播放器, 视频播放, 流媒体, 网络电视">
     <script src="js/hls.min.js"></script>
     <link rel="preload" as="script" href="js/hls.min.js">
     <style>
@@ -338,6 +342,7 @@
             padding: 5px 10px;
             cursor: pointer;
             font-size: 14px;
+            line-height: 20px;
             display: flex;
             align-items: center;
             transition: all 0.2s ease;
@@ -997,7 +1002,7 @@
                         </div>
                     </div>
                     <div class="speed-selector">
-                        <button class="control-btn">1x</button>
+                        <button class="control-btn">1.0x</button>
                         <div class="speed-menu" id="speedMenu">
                             <div class="speed-item" onclick="setPlaybackSpeed(2)">2.0x</div>
                             <div class="speed-item" onclick="setPlaybackSpeed(1.5)">1.5x</div>
@@ -1050,8 +1055,8 @@
     const hlsConfig = {
         autoStartLoad: true,          // 自动开始加载
         startLevel: -1,              // 自动选择最佳品质
-        maxBufferLength: 30,         // 缓冲区长度（秒）
-        maxBufferSize: 10 * 1000 * 1000,  // 缓冲区大小限制为10MB，避免内存占用过大
+        maxBufferLength: 240,         // 缓冲区长度（秒）
+        maxBufferSize: 100 * 1000 * 1000,  // 缓冲区大小限制为10MB，避免内存占用过大
         enableWorker: true,          // 启用Web Worker提高性能
         debug: false,                // 关闭调试模式
         progressive: true,           // 启用渐进式加载
@@ -1066,8 +1071,8 @@
         abrEwmaSlowLive: 9,              // 慢速带宽估计权重
         abrMaxWithRealBitrate: true,     // 使用实际码率
         // 预加载设置
-        preloadTime: 10,                  // 预加载时长（秒）
-        maxMaxBufferLength: 30,           // 最大缓冲区长度
+        preloadTime: 240,                  // 预加载时长（秒）
+        maxMaxBufferLength: 240,           // 最大缓冲区长度
         startFragPrefetch: true,          // 开始预加载片段
         // 错误恢复
         maxFragLookUpTolerance: 0.25,     // 片段查找容差
@@ -1077,6 +1082,8 @@
 
     let currentHls = null;
     const loading = document.getElementById('loading');
+    const qualityBtn = document.querySelector('.quality-selector .control-btn');
+    const speedBtn = document.querySelector('.speed-selector .control-btn');
 
     function playVideo() {
         const video = document.getElementById('videoPlayer');
@@ -1124,6 +1131,7 @@
 
                 // 设置默认清晰度（使用之前声明的bestLevel变量）
                 document.querySelector(`[data-level="${bestLevel}"]`).classList.add('active');
+                qualityBtn.textContent = document.querySelector(`[data-level="${bestLevel}"]`).textContent;
             });
 
             currentHls.on(Hls.Events.LEVEL_LOADED, function () {
@@ -1160,6 +1168,9 @@
 
             currentHls.loadSource(url);
             currentHls.attachMedia(video);
+
+            // 播放速度
+            video.playbackRate = parseFloat(document.querySelector(".speed-item.active").textContent)
 
             // 添加跳转相关的事件处理
             video.addEventListener('seeking', function () {
@@ -1474,12 +1485,6 @@
         updateHistoryDisplay();
     });
 
-    // 清晰度控制
-    function toggleQualityMenu() {
-        const menu = document.getElementById('qualityMenu');
-        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-    }
-
     function switchQuality(level) {
         if (currentHls) {
             currentHls.currentLevel = level;
@@ -1488,14 +1493,7 @@
                 item.classList.remove('active');
             });
             document.querySelector(`[data-level="${level}"]`).classList.add('active');
-            toggleQualityMenu();
         }
-    }
-
-    // 倍速控制
-    function toggleSpeedMenu() {
-        const menu = document.getElementById('speedMenu');
-        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
     }
 
     function setPlaybackSpeed(speed) {
@@ -1506,7 +1504,6 @@
             item.classList.remove('active');
         });
         document.querySelector(`.speed-item[onclick="setPlaybackSpeed(${speed})"]`).classList.add('active');
-        toggleSpeedMenu();
     }
 
 
@@ -1665,10 +1662,17 @@
 
     // 防止点击菜单项时关闭菜单
     document.querySelectorAll('.quality-menu, .speed-menu').forEach(menu => {
-        menu.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
+    menu.addEventListener('click', (e) => {
+        const clickedElement = e.target; // 获取点击的元素
+
+        if (clickedElement.classList.contains('quality-item')) {
+            qualityBtn.textContent = clickedElement.textContent;
+        } else if (clickedElement.classList.contains('speed-item')) {
+            speedBtn.textContent = clickedElement.textContent;
+        }
     });
+});
+
 
     // 添加音量控制相关代码
     const volumeControl = document.querySelector('.volume-control');
@@ -1835,118 +1839,12 @@
 
     // 更新菜单生成和控制代码
     document.addEventListener('DOMContentLoaded', function() {
-        // 获取菜单元素
-        const qualityBtn = document.querySelector('.quality-selector .control-btn');
-        const speedBtn = document.querySelector('.speed-selector .control-btn');
-        const qualityMenu = document.getElementById('qualityMenu');
-        const speedMenu = document.getElementById('speedMenu');
-
-        // 设置初始显示文本
-        qualityBtn.textContent = '自动';
-        speedBtn.textContent = '1x';
-
-        // 初始化倍速菜单
+        // // 初始化倍速菜单
         const currentSpeed = 1.0;
         document.querySelector(`.speed-item[onclick="setPlaybackSpeed(${currentSpeed})"]`).classList.add('active');
-
-        // 当HLS.js加载完成后生成画质单
-        if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-            currentHls.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
-                let menuHTML = '<div class="quality-item active" data-level="-1" onclick="switchQuality(-1)">自动</div>';
-                data.levels.forEach((level, index) => {
-                    const resolution = level.height + 'p';
-                    menuHTML += `<div class="quality-item" data-level="${index}" onclick="switchQuality(${index})">${resolution}</div>`;
-                });
-                qualityMenu.innerHTML = menuHTML;
-            });
-        }
-
-        // 处理菜单显示/隐藏
-        function toggleMenu(menu, button) {
-            const isMenuVisible = menu.classList.contains('show');
-            
-            // 关闭所有菜单和按钮状态
-            [qualityMenu, speedMenu].forEach(m => m.classList.remove('show'));
-            [qualityBtn, speedBtn].forEach(btn => btn.classList.remove('active'));
-
-            // 如果菜单当前是隐藏的，则显示它
-            if (!isMenuVisible) {
-                menu.classList.add('show');
-                button.classList.add('active');
-            }
-        }
-
-        // 绑定按钮点击事件
-        qualityBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            toggleMenu(qualityMenu, this);
-        });
-
-        speedBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            toggleMenu(speedMenu, this);
-        });
-
-        // 点击菜单项的处理
-        qualityMenu.addEventListener('click', function(e) {
-            e.stopPropagation();
-            if (e.target.classList.contains('quality-item')) {
-                toggleMenu(qualityMenu, qualityBtn);
-            }
-        });
-
-        speedMenu.addEventListener('click', function(e) {
-            e.stopPropagation();
-            if (e.target.classList.contains('speed-item')) {
-                toggleMenu(speedMenu, speedBtn);
-            }
-        });
-
-        // 点击其他区域关闭菜单
-        document.addEventListener('click', function(e) {
-            // 检查点击是否在菜单或按钮之外
-            const isOutsideQuality = !qualityBtn.contains(e.target) && !qualityMenu.contains(e.target);
-            const isOutsideSpeed = !speedBtn.contains(e.target) && !speedMenu.contains(e.target);
-
-            if (isOutsideQuality && isOutsideSpeed) {
-                toggleMenu(qualityMenu, qualityBtn); // 使用相同的切换逻辑
-            }
-        });
     });
 
-    // 切画质数
-    function switchQuality(level) {
-        if (currentHls) {
-            currentHls.currentLevel = level;
-            document.querySelectorAll('.quality-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            const selectedItem = document.querySelector(`[data-level="${level}"]`);
-            selectedItem.classList.add('active');
-            
-            // 更新按钮文本
-            const qualityBtn = document.querySelector('.quality-selector .control-btn');
-            qualityBtn.textContent = level === -1 ? '自动' : selectedItem.textContent;
-        }
-    }
-
-    // 设置播放速度函数
-    function setPlaybackSpeed(speed) {
-        const video = document.getElementById('videoPlayer');
-        video.playbackRate = speed;
-        document.querySelectorAll('.speed-item').forEach(item => {
-            item.classList.remove('active');
-        });
-        const selectedItem = document.querySelector(`.speed-item[onclick="setPlaybackSpeed(${speed})"]`);
-        selectedItem.classList.add('active');
-        
-        // 更新按钮文本
-        const speedBtn = document.querySelector('.speed-selector .control-btn');
-        speedBtn.textContent = speed + 'x';
-    }
-
     document.addEventListener('DOMContentLoaded', function() {
-        // ... 保持其他代码不变 ...
 
         // 获取视频元素
         const video = document.getElementById('videoPlayer');
