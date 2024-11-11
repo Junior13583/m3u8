@@ -10,6 +10,7 @@
     <meta name="keywords" content="M3U8, 在线播放器, 视频播放, 流媒体, 网络电视">
     <script src="js/hls.min.js"></script>
     <link rel="preload" as="script" href="js/hls.min.js">
+    <link rel="icon" type="image/png" href="img/favicon.ico">
     <style>
         * {
             margin: 0;
@@ -1576,17 +1577,17 @@
     });
 
     // 鼠标移入显示控件
-    //container.addEventListener('mousemove', () => {
-    //    controls.style.opacity = '1';
-    //});
+    container.addEventListener('mousemove', () => {
+        controls.style.opacity = '1';
+    });
 
     // 鼠标移出隐藏控件
-    //container.addEventListener('mouseleave', () => {
-    //    if (!video.paused) {
-    //        clearTimeout(mobileControlsTimeout)
-    //        controls.style.opacity = '0';
-    //    }
-   // });
+    container.addEventListener('mouseleave', () => {
+        if (!video.paused) {
+            clearTimeout(mobileControlsTimeout)
+            controls.style.opacity = '0';
+        }
+    });
 
     // 键盘快捷键
     document.addEventListener('keydown', (e) => {
@@ -1812,18 +1813,19 @@
         }
     });
 
-    // 更新菜单生成和控制代码
     document.addEventListener('DOMContentLoaded', function() {
+
         // // 初始化倍速菜单
         const currentSpeed = 1.0;
-        document.querySelector(`.speed-item[onclick="setPlaybackSpeed(${currentSpeed})"]`).classList.add('active');
-    });
-
-    document.addEventListener('DOMContentLoaded', function() {
-
-        // 获取视频元素
+         // 获取视频元素
         const video = document.getElementById('videoPlayer');
         const videoContainer = document.querySelector('.video-container');
+        // 捐献
+        const donateBtn = document.querySelector('.donate-btn');
+        const donateModal = document.querySelector('.donate-modal');
+        const donateClose = document.querySelector('.donate-close');
+
+        document.querySelector(`.speed-item[onclick="setPlaybackSpeed(${currentSpeed})"]`).classList.add('active');
 
         // 添加视频区域点击事件
         videoContainer.addEventListener('click', function(e) {
@@ -1835,7 +1837,6 @@
                 mobileControlsTimeout = setTimeout(() => {
                     if (!video.paused) {
                         controls.style.opacity = '0';
-                        alert("定时器3秒");
                     }
                 }, 3000);
             }
@@ -1856,7 +1857,7 @@
             }
         });
 
-        // 添加鼠标指针样���
+        // 添加鼠标指针样式
         videoContainer.addEventListener('mousemove', function(e) {
             if (!e.target.closest('.custom-controls') && 
                 !e.target.closest('.quality-menu') && 
@@ -1909,15 +1910,8 @@
             playIcon.style.display = 'block';
             pauseIcon.style.display = 'none';
         });
-    });
 
-    // 打赏相关的JavaScript
-    document.addEventListener('DOMContentLoaded', function() {
-        const donateBtn = document.querySelector('.donate-btn');
-        const donateModal = document.querySelector('.donate-modal');
-        const donateClose = document.querySelector('.donate-close');
-
-        // 打开弹窗
+         // 打开弹窗
         donateBtn.addEventListener('click', function() {
             donateModal.style.display = 'block';
             document.body.style.overflow = 'hidden'; // 防止背景滚动
@@ -1937,6 +1931,7 @@
             }
         });
     });
+
 </script>
 </body>
 </html> 
