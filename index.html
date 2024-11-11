@@ -1576,17 +1576,17 @@
     });
 
     // 鼠标移入显示控件
-    container.addEventListener('mousemove', () => {
-        controls.style.opacity = '1';
-    });
+    //container.addEventListener('mousemove', () => {
+    //    controls.style.opacity = '1';
+    //});
 
     // 鼠标移出隐藏控件
-    container.addEventListener('mouseleave', () => {
-        if (!video.paused) {
-            clearTimeout(mobileControlsTimeout)
-            controls.style.opacity = '0';
-        }
-    });
+    //container.addEventListener('mouseleave', () => {
+    //    if (!video.paused) {
+    //        clearTimeout(mobileControlsTimeout)
+    //        controls.style.opacity = '0';
+    //    }
+   // });
 
     // 键盘快捷键
     document.addEventListener('keydown', (e) => {
