@@ -258,7 +258,6 @@
         }
 
         .delete-history {
-            font-family: fantasy;
             position: absolute;
             right: 12px;
             top: 50%;
@@ -266,24 +265,13 @@
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: rgba(220, 53, 69, 0.8);
-            color: white;
-            font-size: 20px;
+            background-image: url(img/del.png);
+            background-size: cover;
             cursor: pointer;
-            opacity: 0;
+            /*opacity: 0;*/
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             user-select: none;
-        }
-
-        .delete-history::before {
-            content: '×';
-            position: relative;
-            display: flex;
-            line-height: 20px;
-            width: 20px;
-            height: 20px;
-            justify-content: center;
         }
 
         .history-item:hover .delete-history {
@@ -292,7 +280,6 @@
         }
 
         .delete-history:hover {
-            background: rgba(220, 53, 69, 1);
             transform: translateY(-50%) scale(1.15);
             box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
         }
@@ -320,15 +307,6 @@
             text-align: center;
             padding: 20px;
             font-style: italic;
-        }
-
-        .video-controls {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            display: flex;
-            gap: 12px;
-            z-index: 1000;
         }
 
         .quality-selector, .speed-selector {
@@ -1852,6 +1830,12 @@
 
         // 添加视频区域点击事件
         videoContainer.addEventListener('click', function(e) {
+
+            // 检查是否为移动端
+            if (/Mobi|Android/i.test(navigator.userAgent)) {
+                return; // 如果是移动端，直接返回，不执行后续逻辑
+            }
+
             // 确保点击不是在控制栏上
             if (!e.target.closest('.custom-controls') && 
                 !e.target.closest('.quality-menu') && 
@@ -1889,6 +1873,12 @@
         // 添加双击全屏功能
         let lastClickTime = 0;
         videoContainer.addEventListener('click', function(e) {
+
+            // 检查是否为移动端
+            if (/Mobi|Android/i.test(navigator.userAgent)) {
+                return; // 如果是移动端，直接返回，不执行后续逻辑
+            }
+
             const currentTime = new Date().getTime();
             const timeDiff = currentTime - lastClickTime;
 
