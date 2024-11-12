@@ -1584,9 +1584,8 @@
     // 鼠标移出隐藏控件
     container.addEventListener('mouseleave', () => {
         if (!video.paused) {
-            //clearTimeout(mobileControlsTimeout)
-            //controls.style.opacity = '0';
-            alert("离开")
+            clearTimeout(mobileControlsTimeout)
+            controls.style.opacity = '0';
         }
     });
 
@@ -1835,11 +1834,11 @@
             if (/Mobi|Android/i.test(navigator.userAgent)) {
                 controls.style.opacity = '1';
                 clearTimeout(mobileControlsTimeout);
-                mobileControlsTimeout = setTimeout(() => {
-                    if (!video.paused) {
-                        controls.style.opacity = '0';
-                    }
-                }, 3000);
+                //mobileControlsTimeout = setTimeout(() => {
+                 //   if (!video.paused) {
+                //        controls.style.opacity = '0';
+               //     }
+               // }, 3000);
             }
 
             // 确保点击不是在控制栏上
