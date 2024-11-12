@@ -1584,8 +1584,9 @@
     // 鼠标移出隐藏控件
     container.addEventListener('mouseleave', () => {
         if (!video.paused) {
-            clearTimeout(mobileControlsTimeout)
-            controls.style.opacity = '0';
+            //clearTimeout(mobileControlsTimeout)
+            //controls.style.opacity = '0';
+            alert("离开")
         }
     });
 
