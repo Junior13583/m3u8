@@ -429,7 +429,7 @@
             left: 0;
             right: 0;
             background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
-            opacity: 1;
+            opacity: 0;
             transition: opacity 0.3s ease;
         }
 
@@ -1585,7 +1585,7 @@
     container.addEventListener('mouseleave', () => {
         if (!video.paused) {
             clearTimeout(mobileControlsTimeout)
-            //controls.style.opacity = '0';
+            controls.style.opacity = '0';
         }
     });
 
@@ -1832,13 +1832,13 @@
 
             // 检查是否为移动端
             if (/Mobi|Android/i.test(navigator.userAgent)) {
-                //controls.style.opacity = '1';
-                //clearTimeout(mobileControlsTimeout);
-                //mobileControlsTimeout = setTimeout(() => {
-                 //   if (!video.paused) {
-                //        controls.style.opacity = '0';
-               //     }
-               // }, 3000);
+                controls.style.opacity = '1';
+                clearTimeout(mobileControlsTimeout);
+                mobileControlsTimeout = setTimeout(() => {
+                if (!video.paused) {
+                        controls.style.opacity = '0';
+                    }
+                }, 3000);
             }
 
             // 确保点击不是在控制栏上
